@@ -2,17 +2,18 @@ import torch
 
 
 class Config():
-    def __init__(self):
-        self.batch_size = 50
-        self.input_size = 64
-        self.num_epochs = 5
-        self.learning_rate = 0.0015
-        self.weight_decay = 1e-4
-        self.augmented = False
-        self.load_pretrained = False
-
+    def __init__(self, args):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+        self.data_base_path = args.data_base_path        
+        self.batch_size = args.batch_size
+        self.input_size = args.input_size
+        self.num_epochs = args.num_epochs
+        self.learning_rate = args.learning_rate
+        self.weight_decay = args.weight_decay
+        self.augmented = args.augmented
+        self.load_pretrained = args.load_pretrained
+
         # lr_scheduler
-        self.step_size = 30
-        self.gamma = 0.1
+        self.step_size = args.step_size
+        self.gamma = args.gamma
