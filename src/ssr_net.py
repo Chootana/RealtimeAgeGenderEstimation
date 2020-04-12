@@ -104,6 +104,8 @@ class FBProb(nn.Module):
         super(FBProb, self).__init__()
         
         modules = []
+        modules.append(nn.Linear(stage_num, 2*stage_num))
+        modules.append(nn.ReLU())
         modules.append(nn.Linear(2*stage_num, stage_num))
         modules.append(nn.ReLU())
         
@@ -118,6 +120,8 @@ class FBIndexOffsets(nn.Module):
         super(FBIndexOffsets, self).__init__()
         
         modules = []
+        modules.append(nn.Linear(stage_num, 2*stage_num))
+        modules.append(nn.ReLU())
         modules.append(nn.Linear(2*stage_num, stage_num))
         modules.append(nn.Tanh())
         
@@ -184,29 +188,13 @@ class SSRNet(nn.Module):
         self.fusion_block_stream2_stage1 = FBStream2(avg_pool_size=2, last_block=True)
         self.fusion_block_stream2_stage1_prediction_block = FBStream2PB(fc_size=10*8*8, stage_num=self.stage_num[0])
         
-        
-        self.stage3_FC_after_PB = nn.Sequential(
-            nn.Linear(self.stage_num[0], 2 * self.stage_num[0]),
-            nn.ReLU()
-        )
-        
         self.stage3_prob = FBProb(stage_num=self.stage_num[2])
         self.stage3_index_offsets = FBIndexOffsets(stage_num=self.stage_num[2])
         self.stage3_delta_k = FBDeltaK(fc_size=10*4*4)
-
-        self.stage2_FC_after_PB = nn.Sequential(
-            nn.Linear(self.stage_num[0], 2 * self.stage_num[0]),
-            nn.ReLU()
-        )
         
         self.stage2_prob = FBProb(stage_num=self.stage_num[1])
         self.stage2_index_offsets = FBIndexOffsets(stage_num=self.stage_num[1])
         self.stage2_delta_k = FBDeltaK(fc_size=10*4*4)
-
-        self.stage1_FC_after_PB = nn.Sequential(
-            nn.Linear(self.stage_num[0], 2 * self.stage_num[0]),
-            nn.ReLU()
-        )
         
         self.stage1_prob = FBProb(stage_num=self.stage_num[0])
         self.stage1_index_offsets = FBIndexOffsets(stage_num=self.stage_num[0])
@@ -273,11 +261,6 @@ class SSRNet(nn.Module):
                                               self.fusion_block_stream2_stage2_prediction_block(embedding_stream2_stage2_before_PB))
         embedding_stage1_after_PB = torch.mul(self.fusion_block_stream1_stage1_prediction_block(embedding_stream1_stage1_before_PB),
                                               self.fusion_block_stream2_stage1_prediction_block(embedding_stream2_stage1_before_PB))
-        
-        # after fusion, use FC to [Batch, 3] -> [Batch, 6]
-        embedding_stage3_after_PB = self.stage3_FC_after_PB(embedding_stage3_after_PB)
-        embedding_stage2_after_PB = self.stage2_FC_after_PB(embedding_stage2_after_PB)
-        embedding_stage1_after_PB = self.stage1_FC_after_PB(embedding_stage1_after_PB)
         
         # prob
         prob_stage3 = self.stage3_prob(embedding_stage3_after_PB)
