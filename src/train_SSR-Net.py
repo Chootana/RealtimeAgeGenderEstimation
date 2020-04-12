@@ -9,7 +9,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from mega_age_asian_datasets import MegaAgeAsianDatasets
-from SSR_Net_model import SSRNet
+from ssr_net import SSRNet
 from config import Config
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -138,7 +138,6 @@ if __name__ == "__main__":
         train_image_labels, 
         train_age_labels, 
         train_data_path, 
-        mode="train",
         augment=hyper_parameters.augmented,
         )
     
@@ -146,7 +145,6 @@ if __name__ == "__main__":
         val_image_labels,
         val_age_labels,
         train_data_path,
-        mode="train",
         augment=hyper_parameters.augmented,
         )
 
@@ -175,7 +173,6 @@ if __name__ == "__main__":
         test_image_labels,
         test_age_labels,
         test_data_path,
-        mode="train",
         augment=hyper_parameters.augmented,
         )
 

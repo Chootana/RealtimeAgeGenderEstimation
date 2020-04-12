@@ -7,11 +7,10 @@ from torchvision import transforms as T
 
 
 class MegaAgeAsianDatasets(Dataset):
-    def __init__(self, image_txt_path, age_txt_path, base_path, augment=False, mode='train', input_size=64):
+    def __init__(self, image_txt_path, age_txt_path, base_path, augment=False, input_size=64):
         self.image_txt = image_txt_path
         self.age_txt = age_txt_path
         self.base_path = base_path
-        self.mode = mode
         self.augment = augment
         self.input_size = input_size
     
@@ -19,27 +18,22 @@ class MegaAgeAsianDatasets(Dataset):
         return len(self.image_txt)
     
     def __getitem__(self, index):
-        image_, image_path_ = self.read_images(index)
-        if self.mode in ['train', ]:
-            label = int(self.age_txt[index].strip())
-        else:
-            label = image_path_
-        if self.augment:
-            image_ = self.augmentor(image_)
         
-        image_ = T.Compose([
-            T.ToPILImage(),
-            T.Resize((self.input_size, self.input_size)),
-            T.RandomHorizontalFlip(),
-            T.ToTensor(),
-            T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])(image_)
-        return image_.float(), label
+        image, _ = self.read_images(index)
+        label = int(self.age_txt[index].strip('\n'))
+            
+        if self.augment:
+            image = self.augmentor(image)
+        
+        image = self.preprocessing(image)
+
+        return image.float(), label
     
-    def read_images(self, index_):
-        filename = self.image_txt[index_].strip()
-        image_path_ = os.path.join(self.base_path, filename)
-        image = cv2.imread(image_path_)
-        return image, image_path_
+    def read_images(self, index):
+        filename = self.image_txt[index].strip('\n')
+        image_path = os.path.join(self.base_path, filename)
+        image = cv2.imread(image_path)
+        return image, image_path
     
     def augmentor(self, image):
         augment_img = iaa.Sequential([
@@ -61,6 +55,16 @@ class MegaAgeAsianDatasets(Dataset):
         
         image_aug = augment_img.augment_image(image)
         return image_aug
+
+    def preprocessing(self, image):
+        image = T.Compose([
+        T.ToPILImage(),
+        T.Resize((self.input_size, self.input_size)),
+        T.RandomHorizontalFlip(),
+        T.ToTensor(),
+        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])(image)
+        
+        return image
 
 
 if __name__ == "__main__":
