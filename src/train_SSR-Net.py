@@ -1,6 +1,5 @@
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 import time
 import copy
 import random
@@ -8,9 +7,9 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from mega_age_asian_datasets import MegaAgeAsianDatasets
-from SSR_models.SSR_Net_model import SSRNet
 
+from mega_age_asian_datasets import MegaAgeAsianDatasets
+from SSR_Net_model import SSRNet
 from config import Config
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -114,7 +113,7 @@ if __name__ == "__main__":
     model = SSRNet(image_size=hyper_parameters.input_size)
     model = model.to(hyper_parameters.device)
 
-    data_base_path = '../../data/megaage_asian'
+    data_base_path = '../data/megaage_asian'
 
     image_labels = load_labels(data_base_path, 'train_name.txt')
     age_labels = load_labels(data_base_path, 'train_age.txt')
@@ -142,6 +141,7 @@ if __name__ == "__main__":
         mode="train",
         augment=hyper_parameters.augmented,
         )
+    
     val_datasets = MegaAgeAsianDatasets(
         val_image_labels,
         val_age_labels,
@@ -158,6 +158,7 @@ if __name__ == "__main__":
         pin_memory=True,
         num_workers=0
         )
+    
     val_loader = DataLoader(
         val_datasets,
         batch_size=hyper_parameters.batch_size,
