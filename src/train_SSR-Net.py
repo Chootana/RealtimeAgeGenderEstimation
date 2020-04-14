@@ -8,7 +8,6 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 from torch.utils.data import DataLoader
-import argparse
 
 from mega_age_asian_datasets import MegaAgeAsianDatasets
 from ssr_net import SSRNet
@@ -36,10 +35,9 @@ def train_model(model, dataloaders, optimizer, criterion, hyper_parameters):
 
             if phase == 'train':
                 model.train()
-                torch.set_grad_enabled(True)
             else: # eval or test
                 model.eval()  # Set model to evaluate mode
-                torch.set_grad_enabled(False)
+
             
             loss = 0.0
             corrects_3 = 0
@@ -52,11 +50,13 @@ def train_model(model, dataloaders, optimizer, criterion, hyper_parameters):
                 optimizer.zero_grad()
                 
                 # track history if only in train
-                outputs = model(inputs)
-                loss = criterion(outputs, labels)
-                if phase == 'train':
-                    loss.backward()
-                    optimizer.step()
+                with torch.set_grad_enabled(phase=='train'):
+                    outputs = model(inputs)
+                    loss = criterion(outputs, labels)
+                    
+                    if phase == 'train':
+                        loss.backward()
+                        optimizer.step()
                     
                 # statistics
                 loss += loss.item() * inputs.size(0)
@@ -108,23 +108,20 @@ def load_labels(dir_base, file_name):
     return labels
 
 if __name__ == "__main__":
-    
-    parser = argparse.ArgumentParser(description='Realtime Age Gender Estimation based on SSR-Net')
-    parser.add_argument('--data_base_path', type=str, default='../data/megaage_asian')
-    parser.add_argument('--batch_size', type=int, default=50)
-    parser.add_argument('--input_size', type=int, default=64)
-    parser.add_argument('--num_epochs', type=int, default=5)
-    parser.add_argument('--learning_rate', type=float, default=0.0015)
-    parser.add_argument('--weight_decay', type=float, default=1e-4)
-    parser.add_argument('--step_size', type=int, default=30)
-    parser.add_argument('--gamma', type=float, default=0.1)
-    parser.add_argument('--augmented', type=bool, default=False)
-    parser.add_argument('--load_pretrained', type=bool, default=False)
-    
-    args = parser.parse_args()
+    args = {
+        'data_base_path': '../../data_RealtimeAgeGenderEstimation/data/megaage_asian',
+        'batch_size': 50,
+        'input_size': 64,
+        'num_epochs': 5,
+        'learning_rate': 0.0015,
+        'weight_decay': 1e-4,
+        'step_size': 30,
+        'gamma': 0.1,
+        'augmented': False,
+        'load_pretrained': False
+    }
     
     hyper_parameters = Config(args)
-    # from IPython import embed; embed(); exit()
     
     model = SSRNet(image_size=hyper_parameters.input_size)
     model = model.to(hyper_parameters.device)
@@ -170,7 +167,7 @@ if __name__ == "__main__":
         batch_size=hyper_parameters.batch_size,
         shuffle=True,
         pin_memory=True,
-        num_workers=0
+        num_workers=2
         )
     
     val_loader = DataLoader(
@@ -178,7 +175,7 @@ if __name__ == "__main__":
         batch_size=hyper_parameters.batch_size,
         shuffle=False,
         pin_memory=True,
-        num_workers=0
+        num_workers=2
     )
     
     test_image_labels = load_labels(data_base_path, 'test_name.txt')
@@ -197,7 +194,7 @@ if __name__ == "__main__":
         batch_size=hyper_parameters.batch_size,
         shuffle=False,
         pin_memory=True,
-        num_workers=0
+        num_workers=2
         )
     
     dataloaders = {
