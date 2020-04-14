@@ -8,6 +8,9 @@ import torch
 from torchvision import transforms as T
 from moviepy.editor import *
 
+from original_SSRNET.SSRNET_model import SSR_net_general
+from keras import backend as K
+
 import pathlib
 current_dir = pathlib.Path(__file__).resolve().parent
 import sys 
@@ -23,7 +26,7 @@ def draw_label(image, point, label, font=cv2.FONT_HERSHEY_SIMPLEX,
     cv2.rectangle(image, (x, y - size[1]), (x + size[0], y), (255, 0, 0), cv2.FILLED)
     cv2.putText(image, label, point, font, font_scale, (255, 255, 255), thickness)
 
-def draw_results(detected,input_img,faces,ad,img_size,img_w,img_h,time_detection,time_network,time_plot, model):
+def draw_results(detected,input_img,faces,ad,img_size,img_w,img_h,time_detection,time_network,time_plot, model, model_gender):
     
     #for i, d in enumerate(detected):
     for i, (x,y,w,h) in enumerate(detected):
@@ -40,10 +43,10 @@ def draw_results(detected,input_img,faces,ad,img_size,img_w,img_h,time_detection
         yw2 = min(int(y2 + ad * h), img_h - 1)
         
         faces[i,:,:,:] = cv2.resize(input_img[yw1:yw2 + 1, xw1:xw2 + 1, :], (img_size, img_size))
-        
+        faces_gender = faces
 
 
-        # faces[i,:,:,:] = cv2.normalize(faces[i,:,:,:], None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+        faces_gender[i,:,:,:] = cv2.normalize(faces_gender[i,:,:,:], None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
 
         cv2.rectangle(input_img, (x1, y1), (x2, y2), (255, 0, 0), 2)
         cv2.rectangle(input_img, (xw1, yw1), (xw2, yw2), (0, 0, 255), 2)
@@ -67,7 +70,7 @@ def draw_results(detected,input_img,faces,ad,img_size,img_w,img_h,time_detection
 
         with torch.no_grad():
             predicted_ages = model(faces)
-        # predicted_genders = model_gender.predict(faces)
+            predicted_genders = model_gender.predict(faces_gender)
         
 
     # draw results
@@ -79,9 +82,9 @@ def draw_results(detected,input_img,faces,ad,img_size,img_w,img_h,time_detection
         x2 = x+w
         y2 = y+h
 
-        gender_str = 'None'
-        # if predicted_genders[i]<0.5:
-        #     gender_str = 'female'
+        gender_str = 'male'
+        if predicted_genders[i]<0.5:
+            gender_str = 'female'
 
         print(predicted_ages)
         label = "{},{}".format(int(predicted_ages[i]),gender_str)
@@ -105,9 +108,8 @@ def draw_results(detected,input_img,faces,ad,img_size,img_w,img_h,time_detection
     return input_img,time_network,time_plot
 
 def main():
-    # K.set_learning_phase(0) # make sure its testing mode
-    # weight_file = "../pre-trained/morph2/ssrnet_3_3_3_64_1.0_1.0/ssrnet_3_3_3_64_1.0_1.0.h5"
-    # weight_file_gender = "../pre-trained/wiki_gender_models/ssrnet_3_3_3_64_1.0_1.0/ssrnet_3_3_3_64_1.0_1.0.h5"
+    K.set_learning_phase(0) # make sure its testing mode
+    weight_file_gender = "./demo/original_SSRNET/wiki_gender_models/ssrnet_3_3_3_64_1.0_1.0/ssrnet_3_3_3_64_1.0_1.0.h5"
     
     face_cascade = cv2.CascadeClassifier('./demo/lbpcascade_frontalface_improved.xml')
     try:
@@ -128,8 +130,8 @@ def main():
     model.load_state_dict(torch.load(model_path))
     model.eval()
 
-    # model_gender = SSR_net_general(img_size,stage_num, lambda_local, lambda_d)()
-    # model_gender.load_weights(weight_file_gender)
+    model_gender = SSR_net_general(img_size,stage_num, lambda_local, lambda_d)()
+    model_gender.load_weights(weight_file_gender)
     
     # capture video
     cap = cv2.VideoCapture(0)
@@ -177,7 +179,8 @@ def main():
                 time_detection,
                 time_network,
                 time_plot,
-                model
+                model,
+                model_gender,
             )
             
             cv2.imwrite('img/'+str(img_idx)+'.png',input_img)
@@ -194,7 +197,8 @@ def main():
                 time_detection,
                 time_network,
                 time_plot,
-                model
+                model,
+                model_gender,
             )
         
         #Show the time cost (fps)

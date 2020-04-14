@@ -20,6 +20,8 @@ imgaug = "*"
 torchvision = "*"
 ipython = "*"
 moviepy = "*"
+keras = "*"
+tensorflow = "*"
 
 [requires]
 python_version = "3.7"
