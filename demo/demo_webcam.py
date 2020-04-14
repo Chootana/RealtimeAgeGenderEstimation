@@ -8,6 +8,10 @@ import torch
 from torchvision import transforms as T
 from moviepy.editor import *
 
+import pathlib
+current_dir = pathlib.Path(__file__).resolve().parent
+import sys 
+sys.path.append(str(current_dir) + '/../')
 from src.ssr_net import SSRNet
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -107,7 +111,7 @@ def main():
     
     face_cascade = cv2.CascadeClassifier('./demo/lbpcascade_frontalface_improved.xml')
     try:
-        os.mkdir('./img')
+        os.mkdir('./demo/img')
     except OSError:
         pass
 
