@@ -35,4 +35,4 @@ So far, the weight path is trained used the MegaAge-Asian datasets.
 
 # Reference
 The official SSR-Net is here: https://github.com/shamangary/SSR-Net  
-See also the pytorch version we inspired: https://github.com/oukohou/SSR_Net_Pytorch
+See also the pytorch version reimplementation we inspired: https://github.com/oukohou/SSR_Net_Pytorch
