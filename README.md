@@ -24,7 +24,7 @@ pipenv install --skip-lock
 python src/train_SSR-Net.py
 ```
 Please make sure the path for dataset is correct.  
-The trained weight is saved at trained_models directory.
+The trained weight is saved at `./trained_models`.
 
 # DEMO
 ```python
