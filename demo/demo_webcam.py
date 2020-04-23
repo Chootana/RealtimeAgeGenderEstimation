@@ -26,9 +26,25 @@ def draw_label(image, point, label, font=cv2.FONT_HERSHEY_SIMPLEX,
     cv2.rectangle(image, (x, y - size[1]), (x + size[0], y), (255, 0, 0), cv2.FILLED)
     cv2.putText(image, label, point, font, font_scale, (255, 255, 255), thickness)
 
+def face_transformed(face):
+
+    trans = T.Compose([
+        T.ToPILImage(),
+        T.Resize((64, 64)),
+        T.RandomHorizontalFlip(),
+        T.ToTensor(),
+        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+
+    face = trans(np.uint8(face))
+    face = face.permute(1, 2, 0)
+
+    return face
+
 def draw_results(detected,input_img,faces,ad,img_size,img_w,img_h,time_detection,time_network,time_plot, model, model_gender):
     
-    #for i, d in enumerate(detected):
+
+    
     for i, (x,y,w,h) in enumerate(detected):
         #x1, y1, x2, y2, w, h = d.left(), d.top(), d.right() + 1, d.bottom() + 1, d.width(), d.height()
         
@@ -43,40 +59,31 @@ def draw_results(detected,input_img,faces,ad,img_size,img_w,img_h,time_detection
         yw2 = min(int(y2 + ad * h), img_h - 1)
         
         faces[i,:,:,:] = cv2.resize(input_img[yw1:yw2 + 1, xw1:xw2 + 1, :], (img_size, img_size))
+
         faces_gender = faces
-
-
         faces_gender[i,:,:,:] = cv2.normalize(faces_gender[i,:,:,:], None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+
+        faces[i] = face_transformed(faces[i])
 
         cv2.rectangle(input_img, (x1, y1), (x2, y2), (255, 0, 0), 2)
         cv2.rectangle(input_img, (xw1, yw1), (xw2, yw2), (0, 0, 255), 2)
         
-    
     start_time = timeit.default_timer()
-
-    trans = T.Compose([
-        T.ToPILImage(),
-        T.Resize((64, 64)),
-        T.RandomHorizontalFlip(),
-        T.ToTensor(),
-        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        ])
 
     if len(detected) > 0:
         # predict ages and genders of the detected faces
 
-        faces = trans(np.uint8(faces[0]))
-        faces = faces.reshape(1, 3, 64, 64).to(device)
+        faces_age = torch.tensor(faces).permute(0, 3, 1, 2)
+        faces_age = faces_age.float().to(device)
 
         with torch.no_grad():
-            predicted_ages = model(faces)
+            predicted_ages = model(faces_age)
             predicted_genders = model_gender.predict(faces_gender)
         
 
     # draw results
     for i, (x,y,w,h) in enumerate(detected):
-        #label = "{}~{}, {}".format(int(predicted_ages[i]*4.54),int((predicted_ages[i]+1)*4.54),
-        #                       "F" if predicted_genders[i][0] > 0.5 else "M")
+
         x1 = x
         y1 = y
         x2 = x+w
@@ -86,7 +93,7 @@ def draw_results(detected,input_img,faces,ad,img_size,img_w,img_h,time_detection
         if predicted_genders[i]<0.5:
             gender_str = 'female'
 
-        print(predicted_ages)
+        print('[{}] {}'.format(gender_str, predicted_ages))
         label = "{},{}".format(int(predicted_ages[i]),gender_str)
         
         draw_label(input_img, (x1, y1), label)
@@ -94,11 +101,8 @@ def draw_results(detected,input_img,faces,ad,img_size,img_w,img_h,time_detection
     elapsed_time = timeit.default_timer()-start_time
     time_network = time_network + elapsed_time
     
-    
-    
     start_time = timeit.default_timer()
 
-    #input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB)
     cv2.imshow("result", input_img)
         
     
@@ -108,10 +112,6 @@ def draw_results(detected,input_img,faces,ad,img_size,img_w,img_h,time_detection
     return input_img,time_network,time_plot
 
 def main():
-    K.set_learning_phase(0) # make sure its testing mode
-    weight_file_gender = "./demo/original_SSRNET/wiki_gender_models/ssrnet_3_3_3_64_1.0_1.0/ssrnet_3_3_3_64_1.0_1.0.h5"
-    
-    face_cascade = cv2.CascadeClassifier('./demo/lbpcascade_frontalface_improved.xml')
     try:
         os.mkdir('./demo/img')
     except OSError:
@@ -122,14 +122,24 @@ def main():
     stage_num = [3,3,3]
     lambda_local = 1
     lambda_d = 1
-    model = SSRNet()
 
-    model_path = "./trained_models/model_Adam_L1Loss_LRDecay_weightDecay0.0001_batch50_lr0.0015_epoch100_pretrained+90_64x64.pth"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model',  '-m', required=True, help='model path for estimation')
+    
+    args = parser.parse_args()
+    model_path = args.model
     assert os.path.exists(model_path), 'model path: {} not exists'.format(model_path)
     
+    # for age estimation
+    model = SSRNet()
     model.load_state_dict(torch.load(model_path))
     model.eval()
 
+    # for gender estimation
+    K.set_learning_phase(0) # make sure its testing mode
+    weight_file_gender = "./demo/original_SSRNET/wiki_gender_models/ssrnet_3_3_3_64_1.0_1.0/ssrnet_3_3_3_64_1.0_1.0.h5"
+    
+    face_cascade = cv2.CascadeClassifier('./demo/lbpcascade_frontalface_improved.xml')
     model_gender = SSR_net_general(img_size,stage_num, lambda_local, lambda_d)()
     model_gender.load_weights(weight_file_gender)
     
@@ -201,11 +211,6 @@ def main():
                 model_gender,
             )
         
-        #Show the time cost (fps)
-        # print('avefps_time_detection:',1/time_detection)
-        # print('avefps_time_network:',skip_frame/time_network)
-        # print('avefps_time_plot:',skip_frame/time_plot)
-        # print('===============================')
         key = cv2.waitKey(1)
         
 
