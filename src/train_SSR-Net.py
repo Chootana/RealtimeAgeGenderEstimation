@@ -1,9 +1,7 @@
 import os
-
 import time
 import copy
 import random
-
 import torch
 import torch.optim as optim
 import torch.nn as nn
@@ -14,10 +12,8 @@ from ssr_net import SSRNet
 from config import Config
 
 
-
 def train_model(model, dataloaders, optimizer, criterion, hyper_parameters):
     
-    # [TODO] What is this?
     global lr_scheduler
     
     since = time.time()
@@ -38,7 +34,6 @@ def train_model(model, dataloaders, optimizer, criterion, hyper_parameters):
             else: # eval or test
                 model.eval()  # Set model to evaluate mode
 
-            
             loss = 0.0
             corrects_3 = 0
             corrects_5 = 0
@@ -130,7 +125,6 @@ if __name__ == "__main__":
 
     image_labels = load_labels(data_base_path, 'train_name.txt')
     age_labels = load_labels(data_base_path, 'train_age.txt')
-
     
     random.seed(2019)
     random.shuffle(image_labels)
@@ -138,7 +132,6 @@ if __name__ == "__main__":
     train_image_labels= image_labels[:train_size]
     val_image_labels = image_labels[train_size:]
     
-
     train_data_path = '{}/train'.format(data_base_path)
 
     random.seed(2019)
