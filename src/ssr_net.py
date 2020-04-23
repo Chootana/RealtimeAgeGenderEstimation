@@ -308,7 +308,6 @@ class SSRNet(nn.Module):
         regress_class = torch.squeeze(regress_class, 1)
         return regress_class
 
-
 def demo_test():
     device = 'cpu'
     net = SSRNet()
