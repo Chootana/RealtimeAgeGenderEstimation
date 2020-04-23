@@ -6,8 +6,7 @@ This is Pytorch's version implementation of [SSR-Net](https://github.com/shamang
 - Keras (for only gender demo)
 - Tensorflow (for only gender demo)
 
-
-It has been tested on google colaboratory.
+It has been tested on [google colaboratory](https://github.com/Chootana/RealtimeAgeGenderEstimation/blob/master/realtime_age_gender_estimation.ipynb).
 
 # Dependencies
 - python 3.7
